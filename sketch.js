@@ -3,6 +3,8 @@ let size, gap, roundness, gridBorder;
 
 let gridX, gridY;
 
+let matches, deleteAnim, deleteAnimLength, count;
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   frameRate(60);
@@ -23,6 +25,11 @@ function setup() {
   offsetY = gap;
 
   grid = [[]];
+  deleteAnim = false;
+  deleteAnimLength = 60;
+  count = deleteAnimLength;
+  matches = [];
+
   colorPallete = ["black", "turquoise", "chartreuse", "deeppink", "mediumslateblue", "coral", "yellow", "white"];
 
   for (let x = 0; x < gridX; x++) {
@@ -35,20 +42,38 @@ function setup() {
 }
 
 function draw() {
+
+  drawGrid();
   if (!gameover) {
-    moved = false;
-    gravitate();
-    if (!moved) {
-      let match = getMatches();
-      if (match.length > 0) {
-        for (let i = 0; i < match.length; i++) {
-          setGridPos(match[i], 0);
+    if (!deleteAnim) {
+      moved = false;
+      gravitate();
+      if (!moved) {
+        matches = getMatches();
+        if (matches.length > 0) {
+          // for (let i = 0; i < matches.length; i++) {
+          //   setGridPos(matches[i], 0);
+          // }
+          deleteAnim = true;
+        } else {
+          addPiece();
         }
       } else {
-        addPiece();
+        drawGrid();
       }
     } else {
-      drawGrid();
+      if (count >= 0) {
+        for (let i = 0; i < matches.length; i++) {
+          setGridPos(matches[i], (floor(count/2) % 7) + 1);
+        }
+        count--;
+      } else {
+        for (let i = 0; i < matches.length; i++) {
+          setGridPos(matches[i], 0);
+        }
+        deleteAnim = false;
+        count = deleteAnimLength;
+      }
     }
   } else {
     for (let x = 0; x < gridX; x++) {
@@ -60,6 +85,7 @@ function draw() {
     gameover = false;
   }
 }
+
 function drawGrid() {
   fill(30);
   rect(offsetX - gridBorder, offsetY - gridBorder, gridX * (size + gap) + gridBorder * 2 - gap,
@@ -114,6 +140,11 @@ function getMatches() {
       matches = matches.concat(getMatchesPos([x, y]));
     }
   }
+
+  let stringArray = matches.map(JSON.stringify);
+  let uniqueStringArray = new Set(stringArray);
+  matches = Array.from(uniqueStringArray, JSON.parse);
+
   return matches;
 }
 function getMatchesPos(pos) {
