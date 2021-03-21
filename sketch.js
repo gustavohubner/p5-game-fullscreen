@@ -4,6 +4,7 @@ let size, gap, roundness, gridBorder;
 let gridX, gridY;
 
 let matches, deleteAnim, deleteAnimLength, count;
+let bonus, bonusX;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -12,7 +13,7 @@ function setup() {
   background(0);
   noStroke();
 
-  size = parseInt(window.prompt("Digite o tamanho dos blocos em pixels", 20));
+  size = parseInt(window.prompt("Digite o tamanho dos blocos em pixels", 30));
   gap = ceil(size / 18);
   roundness = ceil(size / 5);
   gridBorder = 2 * gap;
@@ -21,12 +22,13 @@ function setup() {
   gridY = floor((windowHeight) / (size + gap) + 2);
 
   gameover = false;
+  bonus = false;
   offsetX = gap;
   offsetY = gap;
 
   grid = [[]];
   deleteAnim = false;
-  deleteAnimLength = 60;
+  deleteAnimLength = 30;
   count = deleteAnimLength;
   matches = [];
 
@@ -42,21 +44,29 @@ function setup() {
 }
 
 function draw() {
-
   drawGrid();
   if (!gameover) {
     if (!deleteAnim) {
       moved = false;
       gravitate();
+
       if (!moved) {
-        matches = getMatches();
+        if (bonus) {
+          matches = getMatches().concat(getAllMatchingColor(getBonusColor()));
+          bonus = false;
+          bonusX = -1;
+          frameRate(60);
+        }
+        else matches = getMatches();
         if (matches.length > 0) {
-          // for (let i = 0; i < matches.length; i++) {
-          //   setGridPos(matches[i], 0);
-          // }
           deleteAnim = true;
         } else {
-          addPiece();
+          let chance = floor(random(0, (gridX + gridY)*2));
+          if (chance == 0) {
+            frameRate(5);
+            addBonusPiece();
+          }
+          else addPiece();
         }
       } else {
         drawGrid();
@@ -64,7 +74,7 @@ function draw() {
     } else {
       if (count >= 0) {
         for (let i = 0; i < matches.length; i++) {
-          setGridPos(matches[i], (floor(count/2) % 7) + 1);
+          setGridPos(matches[i], (floor(count / 2) % 7) + 1);
         }
         count--;
       } else {
@@ -75,6 +85,7 @@ function draw() {
         count = deleteAnimLength;
       }
     }
+
   } else {
     for (let x = 0; x < gridX; x++) {
       grid[x] = [];
@@ -113,7 +124,6 @@ function gravitate() {
   }
 }
 function addPiece() {
-
   col = lowestCol();
   if (grid[col][gridY - 3] == 0) {
     grid[col][gridY - 1] = floor(random(1, 7));
@@ -212,4 +222,41 @@ function lowestCol() {
         return x;
     }
   }
+}
+
+function getAllMatchingColor(color) {
+  let result = [];
+  if (color != 0) {
+    for (let y = 0; y < gridY; y++) {
+      for (let x = 0; x < gridX; x++) {
+        if (grid[x][y] == color)
+          result.push([x, y]);
+      }
+    }
+  }
+  return result
+}
+
+function addBonusPiece() {
+  col = lowestCol();
+  bonus = true;
+  bonusX = col;
+  if (grid[col][gridY - 3] == 0) {
+    grid[col][gridY - 1] = 7;
+    grid[col][gridY - 2] = 7;
+    grid[col][gridY - 3] = 7;
+  } else {
+    gameover = true
+  }
+}
+
+function getBonusColor() {
+  let color = 0;
+  for (let y = 0; y < gridY; y++) {
+    let c = getGridPos([bonusX, y])
+    if (c != 0 && c != 7) {
+      color = getGridPos([bonusX, y]);
+    }
+  }
+  return color;
 }
