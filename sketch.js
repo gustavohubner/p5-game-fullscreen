@@ -6,7 +6,10 @@ let gridX, gridY;
 let matches, deleteAnim, deleteAnimLength, count;
 let bonus, bonusX;
 
+let minX, minY, maxX, maxY;
+
 function setup() {
+
   createCanvas(windowWidth, windowHeight);
   frameRate(60);
   textAlign(CENTER, CENTER);
@@ -20,6 +23,11 @@ function setup() {
 
   gridX = floor((windowWidth) / (size + gap));
   gridY = floor((windowHeight) / (size + gap) + 2);
+
+  minX = gridX;
+  minY = gridY;
+  maxX = -1;
+  maxY = -1;
 
   gameover = false;
   bonus = false;
@@ -61,7 +69,7 @@ function draw() {
         if (matches.length > 0) {
           deleteAnim = true;
         } else {
-          let chance = floor(random(0, (gridX + gridY)*2));
+          let chance = floor(random(0, (gridX + gridY) * 2));
           if (chance == 0) {
             frameRate(5);
             addBonusPiece();
@@ -98,13 +106,23 @@ function draw() {
 }
 
 function drawGrid() {
-  fill(30);
+  // fill(30);
+  fill(0);
   rect(offsetX - gridBorder, offsetY - gridBorder, gridX * (size + gap) + gridBorder * 2 - gap,
     (gridY - 2) * (size + gap) + gridBorder * 2 - gap, roundness);
+  // for (let x = 0; x < gridX; x++) {
+  //   for (let y = 0; y < (gridY - 2); y++) {
+  //     fill(0);
+  //     square((size + gap) * x + offsetX, (size + gap) * y + offsetY, size, roundness);
+  //   }
+  // }
   for (let x = 0; x < gridX; x++) {
     for (let y = 0; y < (gridY - 2); y++) {
-      fill(colorPallete[(grid[x][(gridY - 3) - y])]);
-      square((size + gap) * x + offsetX, (size + gap) * y + offsetY, size, roundness);
+      let val = grid[x][(gridY - 3) - y];
+      if (val != 0) {
+        fill(colorPallete[val]);
+        square((size + gap) * x + offsetX, (size + gap) * y + offsetY, size/*, roundness*/);
+      }
     }
   }
 
@@ -118,6 +136,8 @@ function gravitate() {
           grid[x][y - 1] = grid[x][y]
           grid[x][y] = 0;
           moved = true
+          updateDrawArea([x, y]);
+          updateDrawArea([x, y - 1]);
         }
       }
     }
@@ -134,8 +154,8 @@ function addPiece() {
   }
 }
 function checkGameOver() {
-  for (let y = (gridY - 2); y < gridY; y++) {
-    for (let x = 0; x < gridX; x++) {
+  for (let x = 0; x < gridX; x++) {
+    for (let y = (gridY - 2); y < gridY; y++) {
       if (grid[x][y] != 0) {
         gameover = true;
         return;
@@ -146,14 +166,21 @@ function checkGameOver() {
 function getMatches() {
   let matches = [];
   for (let x = 0; x < gridX; x++) {
+    // y:
     for (let y = 0; y < gridY; y++) {
-      matches = matches.concat(getMatchesPos([x, y]));
+      let val = grid[x][y];
+      if (val == 0) {
+        // break y;
+        y = gridY;
+      } else {
+        matches = matches.concat(getMatchesPos([x, y]));
+      }
     }
   }
 
-  let stringArray = matches.map(JSON.stringify);
-  let uniqueStringArray = new Set(stringArray);
-  matches = Array.from(uniqueStringArray, JSON.parse);
+  // let stringArray = matches.map(JSON.stringify);
+  // let uniqueStringArray = new Set(stringArray);
+  // matches = Array.from(uniqueStringArray, JSON.parse);
 
   return matches;
 }
@@ -163,8 +190,10 @@ function getMatchesPos(pos) {
   for (let i = 2; i < 6; i++) {
     if (val == getGridPos(nextPos(pos, i)) && val != 0) {
       let m = getMatchesDir(nextPos(pos, i), i);
-      if (m.length > 1)
+      if (m.length > 1) {
+        updateDrawArea(pos);
         matches = matches.concat(m);
+      }
     }
   }
   if (matches.length >= 2) {
@@ -197,6 +226,7 @@ function nextPos(pos, dir) {
   return result
 }
 function getMatchesDir(pos, dir) {
+  updateDrawArea(pos);
   if (getGridPos(pos) == getGridPos(nextPos(pos, dir))) {
     return [pos].concat(getMatchesDir(nextPos(pos, dir), dir));
   } else {
@@ -227,9 +257,14 @@ function lowestCol() {
 function getAllMatchingColor(color) {
   let result = [];
   if (color != 0) {
-    for (let y = 0; y < gridY; y++) {
-      for (let x = 0; x < gridX; x++) {
-        if (grid[x][y] == color)
+    for (let x = 0; x < gridX; x++) {
+      // y:
+      for (let y = 0; y < gridY; y++) {
+        let val = grid[x][y];
+        if (val == 0) {
+          y = gridY;
+          // break y;
+        } else if (val == color)
           result.push([x, y]);
       }
     }
@@ -259,4 +294,15 @@ function getBonusColor() {
     }
   }
   return color;
+}
+
+function updateDrawArea([x, y]) {
+  if (x < minX)
+    minX = x;
+  if (y < minY)
+    minY = y;
+  if (x > maxX)
+    maxX = x;
+  if (y > maxY)
+    maxY = y;
 }
